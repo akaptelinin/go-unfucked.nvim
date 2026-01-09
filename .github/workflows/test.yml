@@ -31,4 +31,4 @@ jobs:
 
       - name: Run tests
         run: |
-          busted tests/
+          busted --helper=tests/minimal_init.lua tests/
