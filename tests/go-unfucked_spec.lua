@@ -1,5 +1,3 @@
-require("nvim-test-core")
-
 describe("go-unfucked", function()
 	before_each(function()
 		vim._mock.reset()

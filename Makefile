@@ -3,6 +3,6 @@ deps:
 	git clone --depth 1 https://github.com/akaptelinin/nvim-test-core tests/deps/nvim-test-core 2>/dev/null || (cd tests/deps/nvim-test-core && git pull)
 
 test: deps
-	busted tests/
+	busted --helper=tests/minimal_init.lua tests/go-unfucked_spec.lua
 
 .PHONY: test deps
