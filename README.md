@@ -3,9 +3,7 @@
 [![Tests](https://github.com/akaptelinin/go-unfucked.nvim/actions/workflows/test.yml/badge.svg)](https://github.com/akaptelinin/go-unfucked.nvim/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Neovim plugin that improves Go code readability with visual hints and highlighting.
-
-**BLAZINGLY FAST** (didn't test)
+Neovim BLAZINGLY FAST(didn't test) plugin that improves Go code readability with visual hints and highlighting.
 
 ## Features
 
@@ -98,7 +96,7 @@ require("go-unfucked").setup({
 
 ## Why only Neovim?
 
-Why would anyone use other editors?
+Why would anybody use other editors?
 
 ## Related
 
