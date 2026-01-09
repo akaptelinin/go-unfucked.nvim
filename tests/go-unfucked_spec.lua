@@ -1,62 +1,72 @@
-local import_hints = require("go-unfucked.import-hints")
-local receiver_highlight = require("go-unfucked.receiver-highlight")
-local error_dim = require("go-unfucked.error-dim")
+require("nvim-test-core")
 
 describe("go-unfucked", function()
+	before_each(function()
+		vim._mock.reset()
+		vim._mock.add_buffer(1, "/test/main.go", "package main")
+		vim._mock.add_window(1000, 1, { 1, 0 })
+	end)
+
 	describe("import-hints", function()
+		local import_hints = require("go-unfucked.import-hints")
+
 		it("should be a table", function()
-			assert.is_table(import_hints)
+			expect(import_hints).to_be_table()
 		end)
 
 		it("should have setup function", function()
-			assert.is_function(import_hints.setup)
+			expect(import_hints.setup).to_be_function()
 		end)
 
 		it("should have update_hints function", function()
-			assert.is_function(import_hints.update_hints)
+			expect(import_hints.update_hints).to_be_function()
 		end)
 
 		it("should track enabled state", function()
 			import_hints.setup({ enabled = true })
-			assert.is_true(import_hints.enabled)
+			expect(import_hints.enabled).to_be_true()
 
 			import_hints.setup({ enabled = false })
-			assert.is_false(import_hints.enabled)
+			expect(import_hints.enabled).to_be_false()
 		end)
 	end)
 
 	describe("receiver-highlight", function()
+		local receiver_highlight = require("go-unfucked.receiver-highlight")
+
 		it("should be a table", function()
-			assert.is_table(receiver_highlight)
+			expect(receiver_highlight).to_be_table()
 		end)
 
 		it("should have setup function", function()
-			assert.is_function(receiver_highlight.setup)
+			expect(receiver_highlight.setup).to_be_function()
 		end)
 
 		it("should have highlight_receivers function", function()
-			assert.is_function(receiver_highlight.highlight_receivers)
+			expect(receiver_highlight.highlight_receivers).to_be_function()
 		end)
 	end)
 
 	describe("error-dim", function()
+		local error_dim = require("go-unfucked.error-dim")
+
 		it("should be a table", function()
-			assert.is_table(error_dim)
+			expect(error_dim).to_be_table()
 		end)
 
 		it("should have setup function", function()
-			assert.is_function(error_dim.setup)
+			expect(error_dim.setup).to_be_function()
 		end)
 
 		it("should have update_dims function", function()
-			assert.is_function(error_dim.update_dims)
+			expect(error_dim.update_dims).to_be_function()
 		end)
 
 		it("should have default config", function()
-			assert.is_table(error_dim.config)
-			assert.is_false(error_dim.config.enabled)
-			assert.is_false(error_dim.config.dim_simple_return)
-			assert.is_false(error_dim.config.dim_wrapped_return)
+			expect(error_dim.config).to_be_table()
+			expect(error_dim.config.enabled).to_be_false()
+			expect(error_dim.config.dim_simple_return).to_be_false()
+			expect(error_dim.config.dim_wrapped_return).to_be_false()
 		end)
 
 		it("should merge config on setup", function()
@@ -64,9 +74,9 @@ describe("go-unfucked", function()
 				enabled = true,
 				dim_simple_return = true,
 			})
-			assert.is_true(error_dim.config.enabled)
-			assert.is_true(error_dim.config.dim_simple_return)
-			assert.is_false(error_dim.config.dim_wrapped_return)
+			expect(error_dim.config.enabled).to_be_true()
+			expect(error_dim.config.dim_simple_return).to_be_true()
+			expect(error_dim.config.dim_wrapped_return).to_be_false()
 		end)
 	end)
 end)

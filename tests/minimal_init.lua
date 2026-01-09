@@ -1,6 +1,7 @@
-vim.opt.rtp:append(".")
-vim.opt.rtp:append("../plenary.nvim")
+package.path = package.path .. ";./tests/deps/nvim-test-core/lua/?.lua"
+package.path = package.path .. ";./tests/deps/nvim-test-core/lua/?/init.lua"
+package.path = package.path .. ";./lua/?.lua"
+package.path = package.path .. ";./lua/?/init.lua"
 
-vim.cmd([[runtime plugin/plenary.vim]])
-
-require("go-unfucked").setup()
+require("nvim-test-core")
+require("go-unfucked")
