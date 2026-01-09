@@ -5,6 +5,8 @@
 
 Neovim plugin that improves Go code readability with visual hints and highlighting.
 
+**BLAZINGLY FAST** (didn't test)
+
 ## Features
 
 | Feature | Description |
@@ -30,6 +32,12 @@ func (handler *Handler) Process() {  // "handler" highlighted
     handler.db.Query()               // "handler" highlighted
 }
 ```
+
+## Why?
+
+Why did you decide that single-letter names are correct? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously well known for being as compact as possible?
+
+Anyway, this plugin fixes goslop for you.
 
 ## Installation
 
@@ -87,6 +95,10 @@ require("go-unfucked").setup({
 
 - Neovim >= 0.9.0
 - Treesitter with Go parser (`TSInstall go`)
+
+## Why only Neovim?
+
+Why would anyone use other editors?
 
 ## Related
 
