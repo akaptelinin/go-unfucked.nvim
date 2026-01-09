@@ -31,12 +31,6 @@ func (handler *Handler) Process() {  // "handler" highlighted
 }
 ```
 
-## Why?
-
-Why did you decide that single-letter names are correct? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously known for being as compact as possible?
-
-Anyway, this plugin fixes goslop for you.
-
 ## Installation
 
 ### lazy.nvim
