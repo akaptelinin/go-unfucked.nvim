@@ -3,7 +3,7 @@
 [![Tests](https://github.com/akaptelinin/go-unfucked.nvim/actions/workflows/test.yml/badge.svg)](https://github.com/akaptelinin/go-unfucked.nvim/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Neovim BLAZINGLY FAST(didn't test) plugin that improves Go code readability with visual hints and highlighting.
+Neovim BLAZINGLY FAST(didnt test) plugin that improves Go code readability with visual hints and highlighting.
 
 ## Features
 
@@ -33,7 +33,7 @@ func (handler *Handler) Process() {  // "handler" highlighted
 
 ## Why?
 
-Why did you decide that single-letter names are correct? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously well known for being as compact as possible?
+Why did you decide that single-letter names are correct? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously known for being as compact as possible?
 
 Anyway, this plugin fixes goslop for you.
 
