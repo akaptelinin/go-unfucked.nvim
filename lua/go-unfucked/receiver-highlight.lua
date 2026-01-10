@@ -5,7 +5,7 @@ local saved_color = nil
 
 local function set_hl()
 	vim.api.nvim_set_hl(0, "GoReceiver", {
-		fg = saved_color or "#ff9900",
+		fg = saved_color or "#a855f7",
 		italic = true,
 		bold = true,
 	})
