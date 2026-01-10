@@ -2,12 +2,12 @@ local M = {}
 
 local ns = vim.api.nvim_create_namespace("go_receiver_hl")
 local saved_color = nil
+local saved_italic = false
 
 local function set_hl()
 	vim.api.nvim_set_hl(0, "GoReceiver", {
 		fg = saved_color or "#a855f7",
-		italic = true,
-		bold = true,
+		italic = saved_italic,
 	})
 end
 
@@ -74,6 +74,7 @@ end
 function M.setup(opts)
 	opts = opts or {}
 	saved_color = opts.color
+	saved_italic = opts.italic or false
 
 	set_hl()
 
@@ -102,6 +103,12 @@ M._internal = {
 	end,
 	set_saved_color = function(color)
 		saved_color = color
+	end,
+	get_saved_italic = function()
+		return saved_italic
+	end,
+	set_saved_italic = function(italic)
+		saved_italic = italic
 	end,
 	get_namespace = function()
 		return ns
