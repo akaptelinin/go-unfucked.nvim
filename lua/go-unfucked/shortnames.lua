@@ -4,8 +4,25 @@ local ns = vim.api.nvim_create_namespace("go_shortnames")
 
 M.config = {
 	enabled = false,
-	binary = "shortnames-linter",
+	binary = nil,
 }
+
+local function find_binary()
+	local candidates = {
+		vim.fn.exepath("shortnames-linter"),
+		vim.fn.expand("~/go/bin/shortnames-linter"),
+		vim.fn.expand("$GOPATH/bin/shortnames-linter"),
+		vim.fn.expand("$HOME/go/bin/shortnames-linter"),
+	}
+
+	for _, path in ipairs(candidates) do
+		if path ~= "" and vim.fn.executable(path) == 1 then
+			return path
+		end
+	end
+
+	return nil
+end
 
 local function find_go_mod(start_path)
 	local path = start_path
@@ -62,10 +79,15 @@ function M.run(bufnr)
 		return
 	end
 
+	local binary = M.config.binary or find_binary()
+	if not binary then
+		return
+	end
+
 	local rel_dir = filedir:sub(#go_mod_dir + 2)
 	local pkg_path = "./" .. rel_dir
 
-	vim.fn.jobstart({ M.config.binary, pkg_path }, {
+	vim.fn.jobstart({ binary, pkg_path }, {
 		cwd = go_mod_dir,
 		stdout_buffered = true,
 		stderr_buffered = true,
@@ -103,6 +125,17 @@ function M.setup(opts)
 	if not M.config.enabled then
 		return
 	end
+
+	local binary = M.config.binary or find_binary()
+	if not binary then
+		vim.notify(
+			"shortnames-linter not found. Install: go install github.com/akaptelinin/shortnames-linter@latest",
+			vim.log.levels.WARN
+		)
+		return
+	end
+
+	M.config.binary = binary
 
 	local group = vim.api.nvim_create_augroup("GoShortnames", { clear = true })
 
