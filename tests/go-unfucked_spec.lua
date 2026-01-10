@@ -334,6 +334,303 @@ describe("go-unfucked", function()
 			end
 			expect(has_insert_leave).to_be_true()
 		end)
+
+		it("should expose _internal for testing", function()
+			expect(error_dim._internal).to_be_table()
+			expect(error_dim._internal.blend_colors).to_be_function()
+			expect(error_dim._internal.get_bg_color).to_be_function()
+			expect(error_dim._internal.get_dimmed_group).to_be_function()
+			expect(error_dim._internal.clear_cache).to_be_function()
+			expect(error_dim._internal.get_cache).to_be_function()
+			expect(error_dim._internal.get_target_color).to_be_function()
+			expect(error_dim._internal.set_target_color).to_be_function()
+		end)
+
+		describe("blend_colors", function()
+			it("should return original color at 0%", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#000000", 0)
+				expect(result).to_be("#ff0000")
+			end)
+
+			it("should return target color at 100%", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#000000", 100)
+				expect(result).to_be("#000000")
+			end)
+
+			it("should blend 50% correctly", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#000000", 50)
+				expect(result).to_be("#7f0000")
+			end)
+
+			it("should blend white to black at 50%", function()
+				local result = error_dim._internal.blend_colors("#ffffff", "#000000", 50)
+				expect(result).to_be("#7f7f7f")
+			end)
+
+			it("should blend black to white at 50%", function()
+				local result = error_dim._internal.blend_colors("#000000", "#ffffff", 50)
+				expect(result).to_be("#7f7f7f")
+			end)
+
+			it("should handle colors without hash", function()
+				local result = error_dim._internal.blend_colors("ff0000", "000000", 50)
+				expect(result).to_be("#7f0000")
+			end)
+
+			it("should blend green channel correctly", function()
+				local result = error_dim._internal.blend_colors("#00ff00", "#000000", 50)
+				expect(result).to_be("#007f00")
+			end)
+
+			it("should blend blue channel correctly", function()
+				local result = error_dim._internal.blend_colors("#0000ff", "#000000", 50)
+				expect(result).to_be("#00007f")
+			end)
+
+			it("should blend all channels independently", function()
+				local result = error_dim._internal.blend_colors("#ff8040", "#000000", 50)
+				expect(result).to_be("#7f4020")
+			end)
+
+			it("should handle 25% blend", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#000000", 25)
+				expect(result).to_be("#bf0000")
+			end)
+
+			it("should handle 75% blend", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#000000", 75)
+				expect(result).to_be("#3f0000")
+			end)
+
+			it("should blend to non-black target", function()
+				local result = error_dim._internal.blend_colors("#ff0000", "#0000ff", 50)
+				expect(result).to_be("#7f007f")
+			end)
+
+			it("should handle real-world dim scenario", function()
+				local result = error_dim._internal.blend_colors("#a855f7", "#1a1a1a", 40)
+				expect(result).to_match("#")
+			end)
+		end)
+
+		describe("get_bg_color", function()
+			it("should return #000000 when Normal has no bg", function()
+				local result = error_dim._internal.get_bg_color()
+				expect(result).to_be("#000000")
+			end)
+
+			it("should return Normal bg when set", function()
+				vim.api.nvim_set_hl(0, "Normal", { bg = 0x1a1a1a })
+				local result = error_dim._internal.get_bg_color()
+				expect(result).to_be("#1a1a1a")
+			end)
+
+			it("should format bg as 6-digit hex", function()
+				vim.api.nvim_set_hl(0, "Normal", { bg = 0x000001 })
+				local result = error_dim._internal.get_bg_color()
+				expect(result).to_be("#000001")
+			end)
+
+			it("should handle white background", function()
+				vim.api.nvim_set_hl(0, "Normal", { bg = 0xffffff })
+				local result = error_dim._internal.get_bg_color()
+				expect(result).to_be("#ffffff")
+			end)
+		end)
+
+		describe("get_dimmed_group", function()
+			before_each(function()
+				error_dim._internal.clear_cache()
+				error_dim._internal.set_target_color("#000000")
+				error_dim.config.dim_percent = 40
+			end)
+
+			it("should create dimmed highlight group", function()
+				vim.api.nvim_set_hl(0, "@keyword", { fg = 0xff0000 })
+				local dimmed = error_dim._internal.get_dimmed_group("@keyword")
+				expect(dimmed).to_be("GoDim_keyword")
+				expect(vim._hl_groups["GoDim_keyword"]).not_to_be_nil()
+			end)
+
+			it("should cache dimmed groups", function()
+				vim.api.nvim_set_hl(0, "@string", { fg = 0x00ff00 })
+				local first = error_dim._internal.get_dimmed_group("@string")
+				local second = error_dim._internal.get_dimmed_group("@string")
+				expect(first).to_be(second)
+			end)
+
+			it("should sanitize group name with dots", function()
+				vim.api.nvim_set_hl(0, "@lsp.type.function", { fg = 0x0000ff })
+				local dimmed = error_dim._internal.get_dimmed_group("@lsp.type.function")
+				expect(dimmed).to_be("GoDim_lsp_type_function")
+			end)
+
+			it("should preserve bold attribute", function()
+				vim.api.nvim_set_hl(0, "@bold.test", { fg = 0xff0000, bold = true })
+				error_dim._internal.get_dimmed_group("@bold.test")
+				expect(vim._hl_groups["GoDim_bold_test"].bold).to_be_true()
+			end)
+
+			it("should preserve italic attribute", function()
+				vim.api.nvim_set_hl(0, "@italic.test", { fg = 0xff0000, italic = true })
+				error_dim._internal.get_dimmed_group("@italic.test")
+				expect(vim._hl_groups["GoDim_italic_test"].italic).to_be_true()
+			end)
+
+			it("should preserve underline attribute", function()
+				vim.api.nvim_set_hl(0, "@underline.test", { fg = 0xff0000, underline = true })
+				error_dim._internal.get_dimmed_group("@underline.test")
+				expect(vim._hl_groups["GoDim_underline_test"].underline).to_be_true()
+			end)
+
+			it("should use default fg for groups without fg", function()
+				vim.api.nvim_set_hl(0, "@nofg", {})
+				error_dim._internal.get_dimmed_group("@nofg")
+				expect(vim._hl_groups["GoDim_nofg"]).not_to_be_nil()
+				expect(vim._hl_groups["GoDim_nofg"].fg).not_to_be_nil()
+			end)
+
+			it("should apply dim_percent from config", function()
+				vim.api.nvim_set_hl(0, "@test.percent", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 50
+				error_dim._internal.clear_cache()
+				error_dim._internal.get_dimmed_group("@test.percent")
+				expect(vim._hl_groups["GoDim_test_percent"].fg).to_be("#7f0000")
+			end)
+
+			it("should use target_color for dimming", function()
+				vim.api.nvim_set_hl(0, "@test.target", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 50
+				error_dim.config.dim_target = "#0000ff"
+				error_dim._internal.clear_cache()
+				error_dim._internal.get_dimmed_group("@test.target")
+				expect(vim._hl_groups["GoDim_test_target"].fg).to_be("#7f007f")
+			end)
+		end)
+
+		describe("clear_cache", function()
+			it("should clear dimmed groups cache", function()
+				vim.api.nvim_set_hl(0, "@cached", { fg = 0xff0000 })
+				error_dim._internal.set_target_color("#000000")
+				error_dim._internal.get_dimmed_group("@cached")
+				expect(error_dim._internal.get_cache()["@cached"]).not_to_be_nil()
+
+				error_dim._internal.clear_cache()
+				expect(error_dim._internal.get_cache()["@cached"]).to_be_nil()
+			end)
+
+			it("should update target_color from config", function()
+				error_dim.config.dim_target = "#123456"
+				error_dim._internal.clear_cache()
+				expect(error_dim._internal.get_target_color()).to_be("#123456")
+			end)
+
+			it("should use get_bg_color when dim_target is nil", function()
+				vim.api.nvim_set_hl(0, "Normal", { bg = 0xaabbcc })
+				error_dim.config.dim_target = nil
+				error_dim._internal.clear_cache()
+				expect(error_dim._internal.get_target_color()).to_be("#aabbcc")
+			end)
+		end)
+
+		describe("ColorScheme callback", function()
+			it("should clear cache on ColorScheme event", function()
+				vim.api.nvim_set_hl(0, "@colorscheme.test", { fg = 0xff0000 })
+				error_dim._internal.set_target_color("#000000")
+				error_dim.setup({})
+				error_dim._internal.get_dimmed_group("@colorscheme.test")
+				expect(error_dim._internal.get_cache()["@colorscheme.test"]).not_to_be_nil()
+
+				local group = vim._autocmds["GoErrorDim"]
+				for _, ac in pairs(group.events or {}) do
+					if ac.events == "ColorScheme" and ac.opts.callback then
+						ac.opts.callback()
+						break
+					end
+				end
+
+				expect(error_dim._internal.get_cache()["@colorscheme.test"]).to_be_nil()
+			end)
+		end)
+
+		describe("dim_percent edge cases", function()
+			before_each(function()
+				error_dim._internal.clear_cache()
+				error_dim._internal.set_target_color("#000000")
+			end)
+
+			it("should handle dim_percent = 0 (no dimming)", function()
+				vim.api.nvim_set_hl(0, "@zero.percent", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 0
+				error_dim._internal.get_dimmed_group("@zero.percent")
+				expect(vim._hl_groups["GoDim_zero_percent"].fg).to_be("#ff0000")
+			end)
+
+			it("should handle dim_percent = 100 (full dim)", function()
+				vim.api.nvim_set_hl(0, "@full.percent", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 100
+				error_dim._internal.clear_cache()
+				error_dim._internal.get_dimmed_group("@full.percent")
+				expect(vim._hl_groups["GoDim_full_percent"].fg).to_be("#000000")
+			end)
+
+			it("should handle dim_percent = 1 (minimal dimming)", function()
+				vim.api.nvim_set_hl(0, "@one.percent", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 1
+				error_dim._internal.clear_cache()
+				error_dim._internal.get_dimmed_group("@one.percent")
+				expect(vim._hl_groups["GoDim_one_percent"].fg).to_be("#fc0000")
+			end)
+
+			it("should handle dim_percent = 99 (almost full dim)", function()
+				vim.api.nvim_set_hl(0, "@ninetynine.percent", { fg = 0xff0000 })
+				error_dim.config.dim_percent = 99
+				error_dim._internal.clear_cache()
+				error_dim._internal.get_dimmed_group("@ninetynine.percent")
+				expect(vim._hl_groups["GoDim_ninetynine_percent"].fg).to_be("#020000")
+			end)
+		end)
+
+		describe("target color scenarios", function()
+			before_each(function()
+				error_dim._internal.clear_cache()
+				error_dim.config.dim_percent = 50
+			end)
+
+			it("should dim to white background", function()
+				vim.api.nvim_set_hl(0, "@white.bg", { fg = 0x000000 })
+				error_dim._internal.set_target_color("#ffffff")
+				error_dim._internal.get_dimmed_group("@white.bg")
+				expect(vim._hl_groups["GoDim_white_bg"].fg).to_be("#7f7f7f")
+			end)
+
+			it("should dim to gray background", function()
+				vim.api.nvim_set_hl(0, "@gray.bg", { fg = 0xff0000 })
+				error_dim._internal.set_target_color("#808080")
+				error_dim._internal.get_dimmed_group("@gray.bg")
+				expect(vim._hl_groups["GoDim_gray_bg"].fg).to_be("#bf4040")
+			end)
+
+			it("should dim to colored background", function()
+				vim.api.nvim_set_hl(0, "@colored.bg", { fg = 0xff0000 })
+				error_dim._internal.set_target_color("#00ff00")
+				error_dim._internal.get_dimmed_group("@colored.bg")
+				expect(vim._hl_groups["GoDim_colored_bg"].fg).to_be("#7f7f00")
+			end)
+		end)
+
+		describe("setup target_color initialization", function()
+			it("should set target_color from config on setup", function()
+				error_dim.setup({ dim_target = "#abcdef" })
+				expect(error_dim._internal.get_target_color()).to_be("#abcdef")
+			end)
+
+			it("should use Normal bg when dim_target not specified", function()
+				vim.api.nvim_set_hl(0, "Normal", { bg = 0x112233 })
+				error_dim.setup({ dim_target = nil })
+				expect(error_dim._internal.get_target_color()).to_be("#112233")
+			end)
+		end)
 	end)
 
 	describe("shortnames", function()

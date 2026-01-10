@@ -300,4 +300,24 @@ function M.setup(opts)
 	end, {})
 end
 
+M._internal = {
+	blend_colors = blend_colors,
+	get_bg_color = get_bg_color,
+	get_dimmed_group = function(original_group)
+		return get_dimmed_group(original_group)
+	end,
+	clear_cache = function()
+		clear_cache()
+	end,
+	get_cache = function()
+		return dimmed_groups
+	end,
+	get_target_color = function()
+		return target_color
+	end,
+	set_target_color = function(color)
+		target_color = color
+	end,
+}
+
 return M
