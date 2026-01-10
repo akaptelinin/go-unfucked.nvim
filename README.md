@@ -12,6 +12,7 @@ Neovim BLAZINGLY FAST(didnt test) plugin that improves Go code readability with 
 | Import hints | Shows which symbols are used from each import |
 | Receiver highlight | Highlights method receiver in unique color |
 | Error dim | Dims repetitive `if err != nil { return err }` blocks |
+| Short names | Warns about short identifier names via [shortnames-linter](https://github.com/akaptelinin/shortnames-linter) |
 
 ## Screenshots
 
@@ -71,6 +72,9 @@ require("go-unfucked").setup({
         dim_wrapped_return = false,
         dim_color = "#666666",
     },
+    shortnames = {
+        enabled = true,
+    },
 })
 ```
 
@@ -87,6 +91,12 @@ require("go-unfucked").setup({
 
 - Neovim >= 0.9.0
 - Treesitter with Go parser (`TSInstall go`)
+
+## Why restrict short names?
+
+Why did you decide that single-letter names are correct approach? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously known for being as compact as possible?
+
+Anyway, [shortnames-linter](https://github.com/akaptelinin/shortnames-linter) fixes goslop for you.
 
 ## Why only Neovim?
 
