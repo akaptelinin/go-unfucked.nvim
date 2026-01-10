@@ -1,12 +1,21 @@
 local M = {}
 
 local ns = vim.api.nvim_create_namespace("go_error_dim")
+local saved_dim_color = nil
+local saved_dim_blend = nil
 
 M.config = {
 	enabled = false,
 	dim_simple_return = false,
 	dim_wrapped_return = false,
 }
+
+local function set_hl()
+	vim.api.nvim_set_hl(0, "GoDimmedError", {
+		fg = saved_dim_color or "#666666",
+		blend = saved_dim_blend or 50,
+	})
+end
 
 local function analyze_if_err_block(bufnr, block_node)
 	local dominated_statements = 0
@@ -128,14 +137,19 @@ function M.setup(opts)
 
 	M.config = vim.tbl_deep_extend("force", M.config, opts)
 
-	vim.api.nvim_set_hl(0, "GoDimmedError", {
-		fg = opts.dim_color or "#666666",
-		blend = opts.dim_blend or 50,
-	})
+	saved_dim_color = opts.dim_color
+	saved_dim_blend = opts.dim_blend
+
+	set_hl()
 
 	local group = vim.api.nvim_create_augroup("GoErrorDim", { clear = true })
 
-	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged", "TextChangedI" }, {
+	vim.api.nvim_create_autocmd("ColorScheme", {
+		group = group,
+		callback = set_hl,
+	})
+
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged", "TextChangedI", "InsertLeave" }, {
 		group = group,
 		pattern = "*.go",
 		callback = function(ev)

@@ -116,7 +116,7 @@ describe("go-unfucked", function()
 
 		it("should use default color when not specified", function()
 			receiver_highlight.setup({})
-			expect(vim._hl_groups["GoReceiver"].fg).to_be("#ff9900")
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("#a855f7")
 		end)
 
 		it("should register autocmds on setup", function()
@@ -296,6 +296,52 @@ describe("go-unfucked", function()
 			error_dim.setup({ dim_simple_return = true })
 			expect(error_dim.config.enabled).to_be_true()
 			expect(error_dim.config.dim_simple_return).to_be_true()
+		end)
+
+		it("should register ColorScheme autocmd", function()
+			error_dim.setup({})
+			local group = vim._autocmds["GoErrorDim"]
+			expect(group).not_to_be_nil()
+			local has_colorscheme = false
+			for _, ac in pairs(group.events or {}) do
+				if ac.events == "ColorScheme" then
+					has_colorscheme = true
+					break
+				end
+			end
+			expect(has_colorscheme).to_be_true()
+		end)
+
+		it("should restore color after ColorScheme event", function()
+			error_dim.setup({ dim_color = "#333333" })
+			vim._hl_groups["GoDimmedError"] = nil
+			local group = vim._autocmds["GoErrorDim"]
+			for _, ac in pairs(group.events or {}) do
+				if ac.events == "ColorScheme" and ac.opts.callback then
+					ac.opts.callback()
+					break
+				end
+			end
+			expect(vim._hl_groups["GoDimmedError"]).not_to_be_nil()
+			expect(vim._hl_groups["GoDimmedError"].fg).to_be("#333333")
+		end)
+
+		it("should register InsertLeave autocmd", function()
+			error_dim.setup({})
+			local group = vim._autocmds["GoErrorDim"]
+			expect(group).not_to_be_nil()
+			local has_insert_leave = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "InsertLeave" then
+							has_insert_leave = true
+							break
+						end
+					end
+				end
+			end
+			expect(has_insert_leave).to_be_true()
 		end)
 	end)
 
