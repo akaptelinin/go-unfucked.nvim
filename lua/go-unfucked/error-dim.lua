@@ -13,7 +13,8 @@ local function analyze_if_err_block(bufnr, block_node)
 	local has_side_effects = false
 	local is_wrapped = false
 
-	for child in block_node:iter_children() do
+	for i = 0, block_node:named_child_count() - 1 do
+		local child = block_node:named_child(i)
 		local child_type = child:type()
 
 		if child_type == "return_statement" then
@@ -29,15 +30,7 @@ local function analyze_if_err_block(bufnr, block_node)
 			end
 
 			dominated_statements = dominated_statements + 1
-		elseif
-			child_type == "expression_statement"
-			or child_type == "call_expression"
-			or child_type == "assignment_statement"
-			or child_type == "short_var_declaration"
-		then
-			has_side_effects = true
-			break
-		elseif child_type ~= "{" and child_type ~= "}" then
+		else
 			has_side_effects = true
 			break
 		end
