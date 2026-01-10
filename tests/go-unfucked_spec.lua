@@ -6,6 +6,7 @@ describe("go-unfucked", function()
 		package.loaded["go-unfucked.import-hints"] = nil
 		package.loaded["go-unfucked.receiver-highlight"] = nil
 		package.loaded["go-unfucked.error-dim"] = nil
+		package.loaded["go-unfucked.shortnames"] = nil
 	end)
 
 	describe("import-hints", function()
@@ -252,6 +253,234 @@ describe("go-unfucked", function()
 		end)
 	end)
 
+	describe("shortnames", function()
+		local shortnames
+
+		before_each(function()
+			shortnames = require("go-unfucked.shortnames")
+		end)
+
+		it("should be a table", function()
+			expect(shortnames).to_be_table()
+		end)
+
+		it("should have setup function", function()
+			expect(shortnames.setup).to_be_function()
+		end)
+
+		it("should have run function", function()
+			expect(shortnames.run).to_be_function()
+		end)
+
+		it("should have clear function", function()
+			expect(shortnames.clear).to_be_function()
+		end)
+
+		it("should have default config", function()
+			expect(shortnames.config).to_be_table()
+			expect(shortnames.config.enabled).to_be_false()
+			expect(shortnames.config.binary).to_be_nil()
+		end)
+
+		it("should merge config on setup", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+
+			shortnames.setup({
+				enabled = true,
+				binary = "/custom/path/shortnames-linter",
+			})
+			expect(shortnames.config.enabled).to_be_true()
+			expect(shortnames.config.binary).to_be("/custom/path/shortnames-linter")
+		end)
+
+		it("should create namespace on first call", function()
+			shortnames.clear(1)
+			expect(vim._namespaces["go_shortnames"]).not_to_be_nil()
+		end)
+
+		it("should register autocmds on setup when binary found", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+
+			shortnames.setup({ enabled = true })
+			expect(vim._autocmds["GoShortnames"]).not_to_be_nil()
+		end)
+
+		it("should not register autocmds when disabled", function()
+			shortnames.setup({ enabled = false })
+			expect(vim._autocmds["GoShortnames"]).to_be_nil()
+		end)
+
+		it("should register user commands on setup when binary found", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+
+			shortnames.setup({ enabled = true })
+			expect(vim._commands["GoShortnamesRun"]).not_to_be_nil()
+			expect(vim._commands["GoShortnamesToggle"]).not_to_be_nil()
+		end)
+
+		it("should skip non-go filetypes", function()
+			vim._mock.add_buffer(2, "/test/main.lua", "local x = 1", { filetype = "lua" })
+			shortnames.config.enabled = true
+			shortnames.run(2)
+			local ns_id = vim._namespaces["go_shortnames"]
+			local diagnostics = vim._diagnostics[ns_id] or {}
+			expect(#diagnostics).to_be(0)
+		end)
+
+		it("should clear diagnostics", function()
+			shortnames.clear(1)
+			local ns_id = vim._namespaces["go_shortnames"]
+			expect(ns_id).not_to_be_nil()
+		end)
+
+		describe("parse_output", function()
+			it("should parse single line", function()
+				local output = '/test/main.go:10:5: variable "x" is too short'
+				local diagnostics = {}
+				for line in output:gmatch("[^\r\n]+") do
+					local file, lnum, col, msg = line:match("^(.+):(%d+):(%d+): (.+)$")
+					if file and file == "/test/main.go" then
+						table.insert(diagnostics, {
+							lnum = tonumber(lnum) - 1,
+							col = tonumber(col) - 1,
+							message = msg,
+						})
+					end
+				end
+				expect(#diagnostics).to_be(1)
+				expect(diagnostics[1].lnum).to_be(9)
+				expect(diagnostics[1].col).to_be(4)
+				expect(diagnostics[1].message).to_be('variable "x" is too short')
+			end)
+
+			it("should parse multiple lines", function()
+				local output = "/test/main.go:10:5: first\n/test/main.go:20:10: second"
+				local diagnostics = {}
+				for line in output:gmatch("[^\r\n]+") do
+					local file, lnum, col, msg = line:match("^(.+):(%d+):(%d+): (.+)$")
+					if file and file == "/test/main.go" then
+						table.insert(diagnostics, {
+							lnum = tonumber(lnum) - 1,
+							col = tonumber(col) - 1,
+							message = msg,
+						})
+					end
+				end
+				expect(#diagnostics).to_be(2)
+			end)
+
+			it("should filter by filename", function()
+				local output = "/test/main.go:10:5: in file\n/test/other.go:20:10: in other"
+				local diagnostics = {}
+				for line in output:gmatch("[^\r\n]+") do
+					local file, lnum, col, msg = line:match("^(.+):(%d+):(%d+): (.+)$")
+					if file and file == "/test/main.go" then
+						table.insert(diagnostics, { message = msg })
+					end
+				end
+				expect(#diagnostics).to_be(1)
+				expect(diagnostics[1].message).to_be("in file")
+			end)
+
+			it("should ignore malformed lines", function()
+				local output = "not valid\n/test/main.go:10:5: valid\nshortnames: skipped"
+				local diagnostics = {}
+				for line in output:gmatch("[^\r\n]+") do
+					local file, lnum, col, msg = line:match("^(.+):(%d+):(%d+): (.+)$")
+					if file and file == "/test/main.go" then
+						table.insert(diagnostics, { message = msg })
+					end
+				end
+				expect(#diagnostics).to_be(1)
+			end)
+		end)
+
+		describe("find_go_mod", function()
+			it("should find go.mod in current dir", function()
+				vim._mock.set_file_readable("/project/go.mod", true)
+				local path = "/project"
+				while path ~= "/" do
+					if vim.fn.filereadable(path .. "/go.mod") == 1 then
+						break
+					end
+					path = vim.fn.fnamemodify(path, ":h")
+				end
+				expect(path).to_be("/project")
+			end)
+
+			it("should find go.mod in parent dir", function()
+				vim._mock.set_file_readable("/project/go.mod", true)
+				local path = "/project/pkg/handler"
+				while path ~= "/" do
+					if vim.fn.filereadable(path .. "/go.mod") == 1 then
+						break
+					end
+					path = vim.fn.fnamemodify(path, ":h")
+				end
+				expect(path).to_be("/project")
+			end)
+		end)
+
+		describe("package path calculation", function()
+			it("should calculate relative path", function()
+				local go_mod_dir = "/home/user/project"
+				local filedir = "/home/user/project/pkg/handler"
+				local rel_dir = filedir:sub(#go_mod_dir + 2)
+				local pkg_path = "./" .. rel_dir
+				expect(rel_dir).to_be("pkg/handler")
+				expect(pkg_path).to_be("./pkg/handler")
+			end)
+
+			it("should handle root package", function()
+				local go_mod_dir = "/home/user/project"
+				local filedir = "/home/user/project"
+				local rel_dir = filedir:sub(#go_mod_dir + 2)
+				local pkg_path = "./" .. rel_dir
+				expect(rel_dir).to_be("")
+				expect(pkg_path).to_be("./")
+			end)
+
+			it("should handle deeply nested packages", function()
+				local go_mod_dir = "/home/user/project"
+				local filedir = "/home/user/project/internal/pkg/v2/handler"
+				local rel_dir = filedir:sub(#go_mod_dir + 2)
+				expect(rel_dir).to_be("internal/pkg/v2/handler")
+			end)
+		end)
+
+		describe("find_binary", function()
+			it("should find binary in PATH", function()
+				vim.fn.exepath = function(cmd)
+					if cmd == "shortnames-linter" then
+						return "/usr/local/bin/shortnames-linter"
+					end
+					return ""
+				end
+				vim._mock.set_executable("/usr/local/bin/shortnames-linter", true)
+
+				local result = vim.fn.exepath("shortnames-linter")
+				expect(result).to_be("/usr/local/bin/shortnames-linter")
+			end)
+
+			it("should find binary in go/bin", function()
+				vim.fn.exepath = function() return "" end
+				vim.fn.expand = function(path)
+					if path == "~/go/bin/shortnames-linter" then
+						return "/home/user/go/bin/shortnames-linter"
+					end
+					return path
+				end
+				vim._mock.set_executable("/home/user/go/bin/shortnames-linter", true)
+
+				local expanded = vim.fn.expand("~/go/bin/shortnames-linter")
+				expect(expanded).to_be("/home/user/go/bin/shortnames-linter")
+			end)
+		end)
+	end)
+
 	describe("init module", function()
 		it("should export setup function", function()
 			local go_unfucked = require("go-unfucked")
@@ -264,6 +493,7 @@ describe("go-unfucked", function()
 			expect(vim._autocmds["GoImportHints"]).not_to_be_nil()
 			expect(vim._autocmds["GoReceiverHighlight"]).not_to_be_nil()
 			expect(vim._autocmds["GoErrorDim"]).not_to_be_nil()
+			-- shortnames autocmd only created if binary found, so we don't check it here
 		end)
 
 		it("should pass config to submodules", function()
