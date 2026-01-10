@@ -32,6 +32,21 @@ func (handler *Handler) Process() {  // "handler" highlighted
 }
 ```
 
+**Error dim:**
+```go
+// This boilerplate gets dimmed so you can focus on actual logic:
+if err != nil {
+    return err
+}
+```
+
+**Short names warning:**
+```go
+func calc(x int) int {  // warning: "x" is too short
+    return x * 2
+}
+```
+
 ## Installation
 
 ### lazy.nvim
@@ -96,6 +111,8 @@ The dimming works by blending original syntax colors towards the target. With `d
 | `:GoImportHintsToggle` | Toggle import hints |
 | `:GoErrorDimToggle` | Toggle error block dimming |
 | `:GoErrorDimStatus` | Show error dim status |
+| `:GoShortnamesRun` | Run shortnames linter |
+| `:GoShortnamesToggle` | Toggle shortnames linter |
 
 ## Requirements
 
