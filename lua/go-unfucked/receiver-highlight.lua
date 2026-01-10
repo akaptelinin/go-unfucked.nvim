@@ -84,7 +84,7 @@ function M.setup(opts)
 		callback = set_hl,
 	})
 
-	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged" }, {
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged", "TextChangedI", "InsertLeave" }, {
 		group = group,
 		pattern = "*.go",
 		callback = function(ev)

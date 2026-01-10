@@ -166,6 +166,24 @@ describe("go-unfucked", function()
 			expect(vim._hl_groups["GoReceiver"]).not_to_be_nil()
 			expect(vim._hl_groups["GoReceiver"].fg).to_be("#ff757f")
 		end)
+
+		it("should register InsertLeave and TextChangedI autocmds", function()
+			receiver_highlight.setup({})
+			local group = vim._autocmds["GoReceiverHighlight"]
+			expect(group).not_to_be_nil()
+			local has_insert_leave = false
+			local has_text_changed_i = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "InsertLeave" then has_insert_leave = true end
+						if ev == "TextChangedI" then has_text_changed_i = true end
+					end
+				end
+			end
+			expect(has_insert_leave).to_be_true()
+			expect(has_text_changed_i).to_be_true()
+		end)
 	end)
 
 	describe("error-dim", function()
