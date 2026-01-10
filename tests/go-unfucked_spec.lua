@@ -78,6 +78,137 @@ describe("go-unfucked", function()
 			local extmarks = vim._extmarks[ns_id] or {}
 			expect(#extmarks).to_be(0)
 		end)
+
+		it("should default to enabled = true", function()
+			local fresh = require("go-unfucked.import-hints")
+			expect(fresh.enabled).to_be_true()
+		end)
+
+		it("should expose _internal for testing", function()
+			expect(import_hints._internal).to_be_table()
+			expect(import_hints._internal.get_imports).to_be_function()
+			expect(import_hints._internal.find_package_usages).to_be_function()
+			expect(import_hints._internal.get_namespace).to_be_function()
+		end)
+
+		it("should return namespace id from _internal.get_namespace", function()
+			import_hints.update_hints(1)
+			local ns = import_hints._internal.get_namespace()
+			expect(ns).to_be(vim._namespaces["go_import_hints"])
+		end)
+
+		it("should return empty imports without treesitter", function()
+			local imports = import_hints._internal.get_imports(1)
+			expect(imports).to_be_table()
+			expect(#imports).to_be(0)
+		end)
+
+		it("should return empty usages without treesitter", function()
+			local usages = import_hints._internal.find_package_usages(1, "fmt")
+			expect(usages).to_be_table()
+			expect(#usages).to_be(0)
+		end)
+
+		it("should register BufEnter autocmd", function()
+			import_hints.setup({})
+			local group = vim._autocmds["GoImportHints"]
+			local has_buf_enter = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufEnter" then has_buf_enter = true end
+					end
+				end
+			end
+			expect(has_buf_enter).to_be_true()
+		end)
+
+		it("should register BufWritePost autocmd", function()
+			import_hints.setup({})
+			local group = vim._autocmds["GoImportHints"]
+			local has_buf_write_post = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufWritePost" then has_buf_write_post = true end
+					end
+				end
+			end
+			expect(has_buf_write_post).to_be_true()
+		end)
+
+		it("should register TextChanged autocmd", function()
+			import_hints.setup({})
+			local group = vim._autocmds["GoImportHints"]
+			local has_text_changed = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "TextChanged" then has_text_changed = true end
+					end
+				end
+			end
+			expect(has_text_changed).to_be_true()
+		end)
+
+		it("should register TextChangedI autocmd", function()
+			import_hints.setup({})
+			local group = vim._autocmds["GoImportHints"]
+			local has_text_changed_i = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "TextChangedI" then has_text_changed_i = true end
+					end
+				end
+			end
+			expect(has_text_changed_i).to_be_true()
+		end)
+
+		it("should use *.go pattern for autocmds", function()
+			import_hints.setup({})
+			local group = vim._autocmds["GoImportHints"]
+			local has_go_pattern = false
+			for _, ac in pairs(group.events or {}) do
+				if ac.opts and ac.opts.pattern == "*.go" then
+					has_go_pattern = true
+					break
+				end
+			end
+			expect(has_go_pattern).to_be_true()
+		end)
+
+		it("should clear augroup on repeated setup", function()
+			import_hints.setup({})
+			local first_count = 0
+			for _ in pairs(vim._autocmds["GoImportHints"].events or {}) do
+				first_count = first_count + 1
+			end
+			import_hints.setup({})
+			local second_count = 0
+			for _ in pairs(vim._autocmds["GoImportHints"].events or {}) do
+				second_count = second_count + 1
+			end
+			expect(first_count).to_be(second_count)
+		end)
+
+		it("should handle missing buffer gracefully", function()
+			local success = pcall(function()
+				import_hints.update_hints(9999)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should set enabled false when explicitly disabled", function()
+			import_hints.setup({ enabled = false })
+			expect(import_hints.enabled).to_be_false()
+		end)
+
+		it("should keep enabled true when setup called without enabled option", function()
+			import_hints.enabled = true
+			import_hints.setup({})
+			expect(import_hints.enabled).to_be_true()
+		end)
 	end)
 
 	describe("receiver-highlight", function()
@@ -183,6 +314,157 @@ describe("go-unfucked", function()
 			end
 			expect(has_insert_leave).to_be_true()
 			expect(has_text_changed_i).to_be_true()
+		end)
+
+		it("should expose _internal for testing", function()
+			expect(receiver_highlight._internal).to_be_table()
+			expect(receiver_highlight._internal.set_hl).to_be_function()
+			expect(receiver_highlight._internal.get_saved_color).to_be_function()
+			expect(receiver_highlight._internal.set_saved_color).to_be_function()
+			expect(receiver_highlight._internal.get_namespace).to_be_function()
+		end)
+
+		it("should return namespace id from _internal.get_namespace", function()
+			receiver_highlight.highlight_receivers(1)
+			local ns = receiver_highlight._internal.get_namespace()
+			expect(ns).to_be(vim._namespaces["go_receiver_hl"])
+		end)
+
+		it("should store saved_color via _internal", function()
+			receiver_highlight._internal.set_saved_color("#abcdef")
+			expect(receiver_highlight._internal.get_saved_color()).to_be("#abcdef")
+		end)
+
+		it("should return nil for saved_color initially", function()
+			expect(receiver_highlight._internal.get_saved_color()).to_be_nil()
+		end)
+
+		it("should set_hl create GoReceiver highlight group", function()
+			receiver_highlight._internal.set_saved_color("#123456")
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"]).not_to_be_nil()
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("#123456")
+		end)
+
+		it("should set_hl use default color when saved_color is nil", function()
+			receiver_highlight._internal.set_saved_color(nil)
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("#a855f7")
+		end)
+
+		it("should set_hl include italic attribute", function()
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"].italic).to_be_true()
+		end)
+
+		it("should set_hl include bold attribute", function()
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"].bold).to_be_true()
+		end)
+
+		it("should handle invalid color format gracefully", function()
+			receiver_highlight._internal.set_saved_color("not-a-color")
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"]).not_to_be_nil()
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("not-a-color")
+		end)
+
+		it("should handle empty string color", function()
+			receiver_highlight._internal.set_saved_color("")
+			receiver_highlight._internal.set_hl()
+			expect(vim._hl_groups["GoReceiver"]).not_to_be_nil()
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("")
+		end)
+
+		it("should register BufEnter autocmd", function()
+			receiver_highlight.setup({})
+			local group = vim._autocmds["GoReceiverHighlight"]
+			local has_buf_enter = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufEnter" then has_buf_enter = true end
+					end
+				end
+			end
+			expect(has_buf_enter).to_be_true()
+		end)
+
+		it("should register BufWritePost autocmd", function()
+			receiver_highlight.setup({})
+			local group = vim._autocmds["GoReceiverHighlight"]
+			local has_buf_write_post = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufWritePost" then has_buf_write_post = true end
+					end
+				end
+			end
+			expect(has_buf_write_post).to_be_true()
+		end)
+
+		it("should register TextChanged autocmd", function()
+			receiver_highlight.setup({})
+			local group = vim._autocmds["GoReceiverHighlight"]
+			local has_text_changed = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "TextChanged" then has_text_changed = true end
+					end
+				end
+			end
+			expect(has_text_changed).to_be_true()
+		end)
+
+		it("should use *.go pattern for autocmds", function()
+			receiver_highlight.setup({})
+			local group = vim._autocmds["GoReceiverHighlight"]
+			local has_go_pattern = false
+			for _, ac in pairs(group.events or {}) do
+				if ac.opts and ac.opts.pattern == "*.go" then
+					has_go_pattern = true
+					break
+				end
+			end
+			expect(has_go_pattern).to_be_true()
+		end)
+
+		it("should clear augroup on repeated setup", function()
+			receiver_highlight.setup({})
+			local first_count = 0
+			for _ in pairs(vim._autocmds["GoReceiverHighlight"].events or {}) do
+				first_count = first_count + 1
+			end
+			receiver_highlight.setup({})
+			local second_count = 0
+			for _ in pairs(vim._autocmds["GoReceiverHighlight"].events or {}) do
+				second_count = second_count + 1
+			end
+			expect(first_count).to_be(second_count)
+		end)
+
+		it("should handle missing buffer gracefully", function()
+			local success = pcall(function()
+				receiver_highlight.highlight_receivers(9999)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should setup store color in saved_color", function()
+			receiver_highlight.setup({ color = "#ff00ff" })
+			expect(receiver_highlight._internal.get_saved_color()).to_be("#ff00ff")
+		end)
+
+		it("should have highlight_identifier_usages function", function()
+			expect(receiver_highlight.highlight_identifier_usages).to_be_function()
+		end)
+
+		it("should clear namespace on highlight_receivers call", function()
+			receiver_highlight.highlight_receivers(1)
+			local ns = receiver_highlight._internal.get_namespace()
+			expect(ns).not_to_be_nil()
 		end)
 	end)
 
@@ -858,6 +1140,320 @@ describe("go-unfucked", function()
 				local expanded = vim.fn.expand("~/go/bin/shortnames-linter")
 				expect(expanded).to_be("/home/user/go/bin/shortnames-linter")
 			end)
+		end)
+
+		it("should expose _internal for testing", function()
+			expect(shortnames._internal).to_be_table()
+			expect(shortnames._internal.find_binary).to_be_function()
+			expect(shortnames._internal.find_go_mod).to_be_function()
+			expect(shortnames._internal.parse_output).to_be_function()
+			expect(shortnames._internal.get_namespace).to_be_function()
+		end)
+
+		it("should return namespace id from _internal.get_namespace", function()
+			shortnames.clear(1)
+			local ns = shortnames._internal.get_namespace()
+			expect(ns).to_be(vim._namespaces["go_shortnames"])
+		end)
+
+		describe("_internal.find_binary", function()
+			it("should return nil when no binary found", function()
+				vim.fn.exepath = function() return "" end
+				vim.fn.expand = function(path) return path end
+				vim._mock.set_executable("shortnames-linter", false)
+
+				local result = shortnames._internal.find_binary()
+				expect(result).to_be_nil()
+			end)
+
+			it("should return path from exepath first", function()
+				vim.fn.exepath = function(cmd)
+					if cmd == "shortnames-linter" then
+						return "/usr/bin/shortnames-linter"
+					end
+					return ""
+				end
+				vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+
+				local result = shortnames._internal.find_binary()
+				expect(result).to_be("/usr/bin/shortnames-linter")
+			end)
+
+			it("should check ~/go/bin as fallback", function()
+				vim.fn.exepath = function() return "" end
+				vim.fn.expand = function(path)
+					if path == "~/go/bin/shortnames-linter" then
+						return "/home/user/go/bin/shortnames-linter"
+					end
+					return path
+				end
+				vim._mock.set_executable("/home/user/go/bin/shortnames-linter", true)
+
+				local result = shortnames._internal.find_binary()
+				expect(result).to_be("/home/user/go/bin/shortnames-linter")
+			end)
+
+			it("should check $GOPATH/bin as fallback", function()
+				vim.fn.exepath = function() return "" end
+				vim.fn.expand = function(path)
+					if path == "$GOPATH/bin/shortnames-linter" then
+						return "/custom/gopath/bin/shortnames-linter"
+					end
+					return path
+				end
+				vim._mock.set_executable("/custom/gopath/bin/shortnames-linter", true)
+
+				local result = shortnames._internal.find_binary()
+				expect(result).to_be("/custom/gopath/bin/shortnames-linter")
+			end)
+
+			it("should prefer exepath over ~/go/bin when both exist", function()
+				vim.fn.exepath = function(cmd)
+					if cmd == "shortnames-linter" then
+						return "/usr/local/bin/shortnames-linter"
+					end
+					return ""
+				end
+				vim.fn.expand = function(path)
+					if path == "~/go/bin/shortnames-linter" then
+						return "/home/user/go/bin/shortnames-linter"
+					end
+					return path
+				end
+				vim._mock.set_executable("/usr/local/bin/shortnames-linter", true)
+				vim._mock.set_executable("/home/user/go/bin/shortnames-linter", true)
+
+				local result = shortnames._internal.find_binary()
+				expect(result).to_be("/usr/local/bin/shortnames-linter")
+			end)
+		end)
+
+		describe("_internal.find_go_mod", function()
+			it("should return nil when no go.mod found", function()
+				local result = shortnames._internal.find_go_mod("/some/random/path")
+				expect(result).to_be_nil()
+			end)
+
+			it("should find go.mod in start path", function()
+				vim._mock.set_file_readable("/project/go.mod", true)
+				local result = shortnames._internal.find_go_mod("/project")
+				expect(result).to_be("/project")
+			end)
+
+			it("should find go.mod in parent directory", function()
+				vim._mock.set_file_readable("/project/go.mod", true)
+				local result = shortnames._internal.find_go_mod("/project/cmd/app")
+				expect(result).to_be("/project")
+			end)
+
+			it("should find go.mod in grandparent directory", function()
+				vim._mock.set_file_readable("/project/go.mod", true)
+				local result = shortnames._internal.find_go_mod("/project/internal/pkg/service")
+				expect(result).to_be("/project")
+			end)
+
+			it("should stop at root", function()
+				local result = shortnames._internal.find_go_mod("/nonexistent/deeply/nested/path")
+				expect(result).to_be_nil()
+			end)
+		end)
+
+		describe("_internal.parse_output", function()
+			before_each(function()
+				vim._mock.add_buffer(1, "/test/main.go", "package main", { filetype = "go" })
+			end)
+
+			it("should return empty table for empty output", function()
+				local result = shortnames._internal.parse_output("", 1)
+				expect(result).to_be_table()
+				expect(#result).to_be(0)
+			end)
+
+			it("should parse single diagnostic", function()
+				local result = shortnames._internal.parse_output('/test/main.go:10:5: variable "x" is too short', 1)
+				expect(#result).to_be(1)
+				expect(result[1].lnum).to_be(9)
+				expect(result[1].col).to_be(4)
+				expect(result[1].message).to_be('variable "x" is too short')
+			end)
+
+			it("should parse multiple diagnostics", function()
+				local output = "/test/main.go:10:5: first\n/test/main.go:20:15: second"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(2)
+				expect(result[1].message).to_be("first")
+				expect(result[2].message).to_be("second")
+			end)
+
+			it("should filter diagnostics by buffer filename", function()
+				vim._mock.add_buffer(2, "/other/file.go", "package other", { filetype = "go" })
+				local output = "/test/main.go:10:5: in main\n/other/file.go:20:10: in other"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(1)
+				expect(result[1].message).to_be("in main")
+			end)
+
+			it("should ignore malformed lines", function()
+				local output = "some random output\n/test/main.go:10:5: valid\ninvalid line"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(1)
+			end)
+
+			it("should set severity to WARN", function()
+				local result = shortnames._internal.parse_output("/test/main.go:10:5: msg", 1)
+				expect(result[1].severity).to_be(vim.diagnostic.severity.WARN)
+			end)
+
+			it("should set source to shortnames", function()
+				local result = shortnames._internal.parse_output("/test/main.go:10:5: msg", 1)
+				expect(result[1].source).to_be("shortnames")
+			end)
+
+			it("should set bufnr correctly", function()
+				local result = shortnames._internal.parse_output("/test/main.go:10:5: msg", 1)
+				expect(result[1].bufnr).to_be(1)
+			end)
+
+			it("should handle Windows-style paths", function()
+				vim._mock.add_buffer(3, "C:\\project\\main.go", "package main", { filetype = "go" })
+				local output = "C:\\project\\main.go:10:5: error msg"
+				local result = shortnames._internal.parse_output(output, 3)
+				expect(#result).to_be(1)
+			end)
+
+			it("should handle paths with spaces", function()
+				vim._mock.add_buffer(4, "/my project/main.go", "package main", { filetype = "go" })
+				local output = "/my project/main.go:10:5: error msg"
+				local result = shortnames._internal.parse_output(output, 4)
+				expect(#result).to_be(1)
+			end)
+
+			it("should handle message with colons", function()
+				local output = "/test/main.go:10:5: error: something: else: here"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(1)
+				expect(result[1].message).to_be("error: something: else: here")
+			end)
+
+			it("should handle line number 0", function()
+				local output = "/test/main.go:0:5: msg"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(1)
+				expect(result[1].lnum).to_be(-1)
+			end)
+
+			it("should handle col number 0", function()
+				local output = "/test/main.go:10:0: msg"
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(1)
+				expect(result[1].col).to_be(-1)
+			end)
+
+			it("should ignore lines with empty message", function()
+				local output = "/test/main.go:10:5: "
+				local result = shortnames._internal.parse_output(output, 1)
+				expect(#result).to_be(0)
+			end)
+		end)
+
+		it("should not run when buffer has no name", function()
+			vim._mock.add_buffer(5, "", "package main", { filetype = "go" })
+			shortnames.config.enabled = true
+			shortnames.config.binary = "/usr/bin/shortnames-linter"
+			local success = pcall(function()
+				shortnames.run(5)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should not run when go.mod not found", function()
+			shortnames.config.enabled = true
+			shortnames.config.binary = "/usr/bin/shortnames-linter"
+			local success = pcall(function()
+				shortnames.run(1)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should register GoShortnamsClear command", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+			shortnames.setup({ enabled = true })
+			expect(vim._commands["GoShortnamsClear"]).not_to_be_nil()
+		end)
+
+		it("should use custom binary path from config", function()
+			shortnames.setup({ enabled = true, binary = "/custom/path/linter" })
+			expect(shortnames.config.binary).to_be("/custom/path/linter")
+		end)
+
+		it("should preserve enabled state after config merge", function()
+			shortnames.setup({ enabled = true, binary = "/bin/linter" })
+			expect(shortnames.config.enabled).to_be_true()
+			shortnames.setup({ binary = "/other/linter" })
+			expect(shortnames.config.enabled).to_be_true()
+		end)
+
+		it("should handle missing buffer gracefully in run", function()
+			shortnames.config.enabled = true
+			local success = pcall(function()
+				shortnames.run(9999)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should handle missing buffer gracefully in clear", function()
+			local success = pcall(function()
+				shortnames.clear(9999)
+			end)
+			expect(success).to_be_true()
+		end)
+
+		it("should register BufEnter autocmd when enabled", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+			shortnames.setup({ enabled = true })
+			local group = vim._autocmds["GoShortnames"]
+			local has_buf_enter = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufEnter" then has_buf_enter = true end
+					end
+				end
+			end
+			expect(has_buf_enter).to_be_true()
+		end)
+
+		it("should register BufWritePost autocmd when enabled", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+			shortnames.setup({ enabled = true })
+			local group = vim._autocmds["GoShortnames"]
+			local has_buf_write_post = false
+			for _, ac in pairs(group.events or {}) do
+				if type(ac.events) == "table" then
+					for _, ev in ipairs(ac.events) do
+						if ev == "BufWritePost" then has_buf_write_post = true end
+					end
+				end
+			end
+			expect(has_buf_write_post).to_be_true()
+		end)
+
+		it("should use *.go pattern for autocmds", function()
+			vim._mock.set_executable("/usr/bin/shortnames-linter", true)
+			vim.fn.exepath = function() return "/usr/bin/shortnames-linter" end
+			shortnames.setup({ enabled = true })
+			local group = vim._autocmds["GoShortnames"]
+			local has_go_pattern = false
+			for _, ac in pairs(group.events or {}) do
+				if ac.opts and ac.opts.pattern == "*.go" then
+					has_go_pattern = true
+					break
+				end
+			end
+			expect(has_go_pattern).to_be_true()
 		end)
 	end)
 

@@ -167,4 +167,13 @@ function M.setup(opts)
 	end, {})
 end
 
+M._internal = {
+	find_binary = find_binary,
+	find_go_mod = find_go_mod,
+	parse_output = parse_output,
+	get_namespace = function()
+		return ns
+	end,
+}
+
 return M

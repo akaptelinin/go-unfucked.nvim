@@ -175,4 +175,12 @@ function M.setup(opts)
 	end, {})
 end
 
+M._internal = {
+	get_imports = get_imports,
+	find_package_usages = find_package_usages,
+	get_namespace = function()
+		return ns
+	end,
+}
+
 return M

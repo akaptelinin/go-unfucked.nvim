@@ -95,4 +95,17 @@ function M.setup(opts)
 	})
 end
 
+M._internal = {
+	set_hl = set_hl,
+	get_saved_color = function()
+		return saved_color
+	end,
+	set_saved_color = function(color)
+		saved_color = color
+	end,
+	get_namespace = function()
+		return ns
+	end,
+}
+
 return M
