@@ -96,7 +96,7 @@ require("go-unfucked").setup({
 
 Why did you decide that single-letter names are correct approach? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously known for being as compact as possible?
 
-Anyway, [shortnames-linter](https://github.com/akaptelinin/shortnames-linter) fixes goslop for you.
+Anyway, this plugin fixes goslop for you.
 
 ## Why only Neovim?
 
