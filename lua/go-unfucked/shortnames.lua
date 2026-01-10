@@ -7,6 +7,17 @@ M.config = {
 	binary = "shortnames-linter",
 }
 
+local function find_go_mod(start_path)
+	local path = start_path
+	while path ~= "/" do
+		if vim.fn.filereadable(path .. "/go.mod") == 1 then
+			return path
+		end
+		path = vim.fn.fnamemodify(path, ":h")
+	end
+	return nil
+end
+
 local function parse_output(output, bufnr)
 	local diagnostics = {}
 	local filename = vim.api.nvim_buf_get_name(bufnr)
@@ -44,7 +55,18 @@ function M.run(bufnr)
 		return
 	end
 
-	vim.fn.jobstart({ M.config.binary, filename }, {
+	local filedir = vim.fn.fnamemodify(filename, ":h")
+	local go_mod_dir = find_go_mod(filedir)
+
+	if not go_mod_dir then
+		return
+	end
+
+	local rel_dir = filedir:sub(#go_mod_dir + 2)
+	local pkg_path = "./" .. rel_dir
+
+	vim.fn.jobstart({ M.config.binary, pkg_path }, {
+		cwd = go_mod_dir,
 		stdout_buffered = true,
 		stderr_buffered = true,
 		on_stdout = function(_, data)
