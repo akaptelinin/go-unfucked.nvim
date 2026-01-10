@@ -79,7 +79,7 @@ require("go-unfucked").setup({
         enabled = true,
     },
     receiver_highlight = {
-        color = "#ff9900",
+        color = "#f5a97f",
         italic = false,
     },
     error_dim = {
