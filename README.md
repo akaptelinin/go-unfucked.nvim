@@ -70,13 +70,23 @@ require("go-unfucked").setup({
         enabled = false,
         dim_simple_return = false,
         dim_wrapped_return = false,
-        dim_color = "#666666",
+        dim_percent = 40,
+        dim_target = nil,
     },
     shortnames = {
         enabled = true,
     },
 })
 ```
+
+### Error dim options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `dim_percent` | `40` | How much to dim (0 = no dim, 100 = fully blended with target) |
+| `dim_target` | `nil` | Target color to blend towards. If `nil`, uses nvim background color |
+
+The dimming works by blending original syntax colors towards the target. With `dim_target = nil`, it automatically adapts to your colorscheme's background.
 
 ## Commands
 
