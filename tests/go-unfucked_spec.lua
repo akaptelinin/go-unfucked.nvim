@@ -138,6 +138,34 @@ describe("go-unfucked", function()
 			local highlights = vim._highlights[ns_id] or {}
 			expect(#highlights).to_be(0)
 		end)
+
+		it("should register ColorScheme autocmd", function()
+			receiver_highlight.setup({ color = "#ff757f" })
+			local group = vim._autocmds["GoReceiverHighlight"]
+			expect(group).not_to_be_nil()
+			local has_colorscheme = false
+			for _, ac in pairs(group.events or {}) do
+				if ac.events == "ColorScheme" then
+					has_colorscheme = true
+					break
+				end
+			end
+			expect(has_colorscheme).to_be_true()
+		end)
+
+		it("should restore color after ColorScheme event", function()
+			receiver_highlight.setup({ color = "#ff757f" })
+			vim._hl_groups["GoReceiver"] = nil
+			local group = vim._autocmds["GoReceiverHighlight"]
+			for _, ac in pairs(group.events or {}) do
+				if ac.events == "ColorScheme" and ac.opts.callback then
+					ac.opts.callback()
+					break
+				end
+			end
+			expect(vim._hl_groups["GoReceiver"]).not_to_be_nil()
+			expect(vim._hl_groups["GoReceiver"].fg).to_be("#ff757f")
+		end)
 	end)
 
 	describe("error-dim", function()

@@ -1,6 +1,15 @@
 local M = {}
 
 local ns = vim.api.nvim_create_namespace("go_receiver_hl")
+local saved_color = nil
+
+local function set_hl()
+	vim.api.nvim_set_hl(0, "GoReceiver", {
+		fg = saved_color or "#ff9900",
+		italic = true,
+		bold = true,
+	})
+end
 
 function M.highlight_identifier_usages(bufnr, node, name)
 	for child in node:iter_children() do
@@ -64,14 +73,16 @@ end
 
 function M.setup(opts)
 	opts = opts or {}
+	saved_color = opts.color
 
-	vim.api.nvim_set_hl(0, "GoReceiver", {
-		fg = opts.color or "#ff9900",
-		italic = true,
-		bold = true,
-	})
+	set_hl()
 
 	local group = vim.api.nvim_create_augroup("GoReceiverHighlight", { clear = true })
+
+	vim.api.nvim_create_autocmd("ColorScheme", {
+		group = group,
+		callback = set_hl,
+	})
 
 	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged" }, {
 		group = group,
