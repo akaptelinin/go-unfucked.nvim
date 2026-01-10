@@ -210,6 +210,7 @@ describe("go-unfucked", function()
 			expect(error_dim.config.enabled).to_be_false()
 			expect(error_dim.config.dim_simple_return).to_be_false()
 			expect(error_dim.config.dim_wrapped_return).to_be_false()
+			expect(error_dim.config.dim_percent).to_be(40)
 		end)
 
 		it("should merge config on setup", function()
@@ -228,19 +229,14 @@ describe("go-unfucked", function()
 			expect(vim._namespaces["go_error_dim"]).not_to_be_nil()
 		end)
 
-		it("should register highlight group on setup", function()
-			error_dim.setup({})
-			expect(vim._hl_groups["GoDimmedError"]).not_to_be_nil()
+		it("should accept dim_percent config", function()
+			error_dim.setup({ dim_percent = 60 })
+			expect(error_dim.config.dim_percent).to_be(60)
 		end)
 
-		it("should use custom dim color from config", function()
-			error_dim.setup({ dim_color = "#333333" })
-			expect(vim._hl_groups["GoDimmedError"].fg).to_be("#333333")
-		end)
-
-		it("should use default dim color when not specified", function()
-			error_dim.setup({})
-			expect(vim._hl_groups["GoDimmedError"].fg).to_be("#666666")
+		it("should accept dim_target config", function()
+			error_dim.setup({ dim_target = "#1a1a1a" })
+			expect(error_dim.config.dim_target).to_be("#1a1a1a")
 		end)
 
 		it("should register autocmds on setup", function()
@@ -312,18 +308,17 @@ describe("go-unfucked", function()
 			expect(has_colorscheme).to_be_true()
 		end)
 
-		it("should restore color after ColorScheme event", function()
-			error_dim.setup({ dim_color = "#333333" })
-			vim._hl_groups["GoDimmedError"] = nil
+		it("should register ColorScheme autocmd for cache clearing", function()
+			error_dim.setup({})
 			local group = vim._autocmds["GoErrorDim"]
+			local has_colorscheme = false
 			for _, ac in pairs(group.events or {}) do
 				if ac.events == "ColorScheme" and ac.opts.callback then
-					ac.opts.callback()
+					has_colorscheme = true
 					break
 				end
 			end
-			expect(vim._hl_groups["GoDimmedError"]).not_to_be_nil()
-			expect(vim._hl_groups["GoDimmedError"].fg).to_be("#333333")
+			expect(has_colorscheme).to_be_true()
 		end)
 
 		it("should register InsertLeave autocmd", function()
@@ -332,13 +327,9 @@ describe("go-unfucked", function()
 			expect(group).not_to_be_nil()
 			local has_insert_leave = false
 			for _, ac in pairs(group.events or {}) do
-				if type(ac.events) == "table" then
-					for _, ev in ipairs(ac.events) do
-						if ev == "InsertLeave" then
-							has_insert_leave = true
-							break
-						end
-					end
+				if ac.events == "InsertLeave" then
+					has_insert_leave = true
+					break
 				end
 			end
 			expect(has_insert_leave).to_be_true()
