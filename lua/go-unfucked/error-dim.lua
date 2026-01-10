@@ -13,8 +13,14 @@ local function analyze_if_err_block(bufnr, block_node)
 	local has_side_effects = false
 	local is_wrapped = false
 
-	for i = 0, block_node:named_child_count() - 1 do
-		local child = block_node:named_child(i)
+	-- block contains statement_list, which contains actual statements
+	local stmt_list = block_node:named_child(0)
+	if not stmt_list or stmt_list:type() ~= "statement_list" then
+		return { has_side_effects = true, is_wrapped = false, is_simple_return = false }
+	end
+
+	for i = 0, stmt_list:named_child_count() - 1 do
+		local child = stmt_list:named_child(i)
 		local child_type = child:type()
 
 		if child_type == "return_statement" then
