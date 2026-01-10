@@ -1,0 +1,6 @@
+return {
+    _all = {
+        helper = "tests/minimal_init.lua",
+        ROOT = {"tests/"},
+    },
+}
