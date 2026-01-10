@@ -131,6 +131,7 @@ function M.setup(opts)
 
 	vim.api.nvim_set_hl(0, "GoDimmedError", {
 		fg = opts.dim_color or "#666666",
+		blend = opts.dim_blend or 50,
 	})
 
 	local group = vim.api.nvim_create_augroup("GoErrorDim", { clear = true })
