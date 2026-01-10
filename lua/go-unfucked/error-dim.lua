@@ -125,30 +125,26 @@ end
 local function dim_region(bufnr, start_row, start_col, end_row, end_col)
 	for row = start_row, end_row do
 		local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
-		if not line then
-			goto continue
-		end
+		if line then
+			local col_start = (row == start_row) and start_col or 0
+			local col_end = (row == end_row) and end_col or #line
 
-		local col_start = (row == start_row) and start_col or 0
-		local col_end = (row == end_row) and end_col or #line
+			for col = col_start, col_end - 1 do
+				local captures = vim.treesitter.get_captures_at_pos(bufnr, row, col)
 
-		for col = col_start, col_end - 1 do
-			local captures = vim.treesitter.get_captures_at_pos(bufnr, row, col)
+				if #captures > 0 then
+					local capture = captures[#captures]
+					local hl_group = "@" .. capture.capture
+					local dimmed = get_dimmed_group(hl_group)
 
-			if #captures > 0 then
-				local capture = captures[#captures]
-				local hl_group = "@" .. capture.capture
-				local dimmed = get_dimmed_group(hl_group)
-
-				vim.api.nvim_buf_set_extmark(bufnr, ns, row, col, {
-					end_col = col + 1,
-					hl_group = dimmed,
-					priority = 200,
-				})
+					vim.api.nvim_buf_set_extmark(bufnr, ns, row, col, {
+						end_col = col + 1,
+						hl_group = dimmed,
+						priority = 200,
+					})
+				end
 			end
 		end
-
-		::continue::
 	end
 end
 
