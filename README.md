@@ -125,6 +125,21 @@ The dimming works by blending original syntax colors towards the target. With `d
 - Neovim >= 0.9.0
 - Treesitter with Go parser (`TSInstall go`)
 
+## Why receiver highlighting?
+
+In Go AST, receiver is just `Parameters`. Treesitter tags it as `@variable.parameter`. gopls returns it as semantic token `"parameter"`. Every editor — VS Code, Zed, Rider, Neovim — shows receiver and parameters in the same color.
+
+```go
+func (c *Client) Fetch(ctx context.Context, r io.Reader)
+//    ↑                ↑                    ↑
+//    receiver         param               param
+//    same color       same color          same color
+```
+
+Go style encourages short names: `c` for client, `ctx` for context, `r` for reader. All idiomatic. All visually identical.
+
+No editor fixes this. No plugin fixes this. Except this one.
+
 ## Why restrict short names?
 
 Why did you decide that single-letter names are correct approach? Is typing a paid feature on your keyboard? You think >2 letter variables are too long for Go, which is famously known for being as compact as possible?
