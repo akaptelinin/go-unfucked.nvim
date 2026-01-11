@@ -27,10 +27,11 @@ import (
 
 **Receiver highlighting:**
 ```go
-func (handler *Handler) Process() {  // "handler" highlighted
-    handler.db.Query()               // "handler" highlighted
+func (handler *Handler) Process(input string) {  // "handler" in peach, "input" in default param color
+    handler.db.Query(input)                       // "handler" stays peach throughout method
 }
 ```
+Without this, receiver and parameters look identical — making it harder to track `self`-like usage.
 
 **Error dim:**
 ```go
