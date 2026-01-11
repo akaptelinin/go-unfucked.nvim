@@ -10,9 +10,9 @@ Neovim BLAZINGLY FAST(didnt test) plugin that improves Go code readability with 
 | Feature | Description |
 |---------|-------------|
 | Import hints | Shows which symbols are used from each import |
-| Receiver highlight | Highlights method receiver in unique color |
+| Receiver highlight | Highlights method receiver and its usages in distinct peach color (`#f5a97f`) |
 | Error dim | Dims repetitive `if err != nil { return err }` blocks |
-| Short names | Warns about short identifier names via [shortnames-linter](https://github.com/akaptelinin/shortnames-linter) |
+| Short names | Warns about short variable names, receiver names, and import aliases via [shortnames-linter](https://github.com/akaptelinin/shortnames-linter) |
 
 ## Screenshots
 
@@ -42,6 +42,10 @@ if err != nil {
 
 **Short names warning:**
 ```go
+import (
+    x "context"  // warning: import alias "x" is too short
+)
+
 func calc(x int) int {  // warning: "x" is too short
     return x * 2
 }
