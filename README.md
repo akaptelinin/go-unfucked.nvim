@@ -127,7 +127,7 @@ The dimming works by blending original syntax colors towards the target. With `d
 
 ## Why receiver highlighting?
 
-In Go AST, receiver is just `Parameters`. Treesitter tags it as `@variable.parameter`. gopls returns it as semantic token `"parameter"`. Every editor — VS Code, Zed, GoLand, Neovim — shows receiver and parameters in the same color.
+In Go AST, receiver is just `Parameters`. Treesitter tags it as `@variable.parameter`. gopls returns it as semantic token `"parameter"`. Every editor — VS Code, Zed, Neovim — shows receiver and parameters in the same color.
 
 ```go
 func (c *Client) Fetch(ctx context.Context, r io.Reader)
