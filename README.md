@@ -127,7 +127,7 @@ The dimming works by blending original syntax colors towards the target. With `d
 
 ## Why receiver highlighting?
 
-In Go AST, receiver is just `Parameters`. Treesitter tags it as `@variable.parameter`. gopls returns it as semantic token `"parameter"`. Every editor — VS Code, Zed, Rider, Neovim — shows receiver and parameters in the same color.
+In Go AST, receiver is just `Parameters`. Treesitter tags it as `@variable.parameter`. gopls returns it as semantic token `"parameter"`. Every editor — VS Code, Zed, GoLand, Neovim — shows receiver and parameters in the same color.
 
 ```go
 func (c *Client) Fetch(ctx context.Context, r io.Reader)
@@ -138,7 +138,7 @@ func (c *Client) Fetch(ctx context.Context, r io.Reader)
 
 Go style encourages short names: `c` for client, `ctx` for context, `r` for reader. All idiomatic. All visually identical.
 
-No editor fixes this. No plugin fixes this. Except this one.
+No editor fixes this. No plugin fixes this. Except this one 🍔
 
 ## Why restrict short names?
 
